@@ -591,3 +591,4 @@ class FetchDoctor(Resource):
             doctor.delete()
             return jsonify(message="patient deleted with succes")
         return abort(404,"doctor account not found")
+

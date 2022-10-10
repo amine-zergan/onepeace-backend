@@ -251,7 +251,7 @@ class Refresh(Resource):
     @patient_view.marshal_with(login_response,code=200)
     def post(self):
         username=get_jwt_identity()
-        doctor:Doctor=Doctor.query.filter_by(username=username).first()
+        patient:Patient=Patient.query.filter_by(username=username).first()
         access_token=create_access_token(identity=username)
         refresh_token=create_refresh_token(identity=username)
         expire =  datetime.utcnow()
@@ -260,7 +260,7 @@ class Refresh(Resource):
             token=AccesToken(
             access_token=access_token,
             refresh_token=refresh_token,
-            doctor_id=doctor.id,
+            patient_id=patient.id,
             expired_in=expire)
             token.save()
         else:

@@ -17,7 +17,6 @@ from .models.image_doctors import ImageDoctor
 from .models.image_patient import ImageModel
 from .admin_account.admin_model import AdminAccount
 from .models.admin_token import AdminToken
-from .models.image_admin import ImageAdmin
 from .models.token_doctor import TokenDoctor
 from flask_admin.contrib.sqla import ModelView
 from .patients_view.views import patient_view
@@ -58,7 +57,6 @@ def create_app(config=config_dict['dev']):
             "admin":AdminAccount,
             "adminToken":AdminToken,
             "tokendoctor":TokenDoctor,
-            "imageAdmin":ImageAdmin
         }
  
     admin.add_view(ModelView(Musique,db.session))

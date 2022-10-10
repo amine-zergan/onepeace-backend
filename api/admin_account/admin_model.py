@@ -14,15 +14,11 @@ class AdminAccount(db.Model):
     urlimage=db.Column(db.String(100))
     email=db.Column(db.String(100),nullable=False,unique=True)
     password=db.Column(db.Text(),nullable=False)
-    code=db.Column(db.Integer,nullable=False)
-    number_phone=db.Column(db.Integer())
-    is_active=db.Column(db.Boolean(),default=True)
     first_name=db.Column(db.String(50),nullable=False)
     last_name=db.Column(db.String(50),nullable=False)
     create_at=db.Column(db.DateTime(),default=datetime.utcnow)
     last_session=db.Column(db.DateTime(),default=datetime.utcnow)
     tokens=db.relationship("AdminToken",backref="token",cascade="all,delete",uselist=False)
-    images = db.relationship('ImageAdmin',backref='images', cascade= "all, delete",lazy="dynamic")
     def __repr__(self) :
         return f"admin  {self.first_name} {self.last_name}"
     def save(self):

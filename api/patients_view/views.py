@@ -47,7 +47,6 @@ signUp_model=patient_view.model(
 signup_response=patient_view.model(
     "Register_Response",{
         "message":fields.String(),
-        "status_code":fields.Integer(),
     }
 )
 
@@ -82,7 +81,6 @@ class SignUp(Resource):
         mail.send(msg)
         user.save()
         response={
-            "status_code":HTTPStatus.CREATED,
             "message":"user created with succes please check your email to verifie your  account  "
         }
         return  response
@@ -96,7 +94,6 @@ login_model=patient_view.model(
 )
 login_response=patient_view.model(
     "login_response",{
-        "status_code":fields.Integer(),
         "session":fields.Boolean(),
         "access_token":fields.String(),
         "refresh_token":fields.String(),
@@ -113,35 +110,37 @@ class Login(Resource):
         email=data.get("email")
         password=data.get("password")
         user :Patient=Patient.query.filter_by(email=email).first()
-        if user is not None and check_password_hash(user.password,password):
-            token =AccesToken.query.filter_by(patient_id=user.id).first()
-            access_token=create_access_token(identity=user.username)
-            refresh_token=create_refresh_token(identity=user.username)
-            expire =  datetime.utcnow()
-            expire +=  timedelta(hours=23)
-            if token is None:
-                token=AccesToken(
+        if user is not None and check_password_hash(user.password,password) :
+            if user.is_verify :
+                token =AccesToken.query.filter_by(patient_id=user.id).first()
+                access_token=create_access_token(identity=user.username)
+                refresh_token=create_refresh_token(identity=user.username)
+                expire =  datetime.utcnow()
+                expire +=  timedelta(hours=23)
+                if token is None:
+                    token=AccesToken(
                     access_token=access_token,
                     refresh_token=refresh_token,
                     patient_id=user.id,
                     expired_in=expire)
-                token.save()
-            else:
-                token.access_token=access_token
-                token.refresh_token=refresh_token
-                token.expired_in=expire
-                token.update()
-            user.is_logged=True
-            user.update()
-            result={
-                "status_code":HTTPStatus.OK,
+                    token.save()
+                else:
+                    token.access_token=access_token
+                    token.refresh_token=refresh_token
+                    token.expired_in=expire
+                    token.update()
+                user.is_logged=True
+                user.update()
+                result={
                 "access_token":access_token,
                 "refresh_token":refresh_token,
                 "session":True,
                 "expire_in":token.expired_in
-            }
-            return result
-        return abort(HTTPStatus.NOT_FOUND,"verifie your email or password wrong")
+                }
+                return result
+            else:
+                return abort(404,"Account patient is not verify , please check your email account and verifie your email address")
+        return abort(404,"verifie your email or password wrong")
 
 ################### log-out endpoint ######################
  
@@ -184,7 +183,7 @@ code_model=patient_view.model(
 code_response=patient_view.model(
     "Result",{
     "message":fields.String(),
-    "status_code":fields.Integer()}
+    }
 )
 
 
@@ -201,7 +200,6 @@ class Verify(Resource):
             user.update()
             response={
                 "message":"Account is verifie with success",
-                "status_code":HTTPStatus.ACCEPTED
             }
             return response
         abort(401,"try to verifie your email address to sign in")
@@ -216,7 +214,6 @@ reset_model=patient_view.model(
 
 reset_response=patient_view.model(
     "reset_response",{
-        "status_code":fields.Integer(),
         "message":fields.String()
     }
 )
@@ -234,12 +231,12 @@ class LogOut(Resource):
         if user is None:
             return abort(401,"user not found verifier your email")
         msg=Message("Reset password For user account",sender=os.getenv("MAIL_USERNAME"),recipients=[f"{user.email}"])
-        user.password=f"Password123*@{user.username[0:2]}????{user.email[0:4]}"
+        password=f"Password123*@{user.username[0:2]}????{user.email[0:4]}"
+        user.password=generate_password_hash(password)
         user.update()
-        msg.body=F"bienvenue chez auth flask api ,{user.first_name}, your password was updated with succes, please login with new password {user.password}"
+        msg.body=F"bienvenue chez auth flask api ,{user.first_name}, your password was updated with succes, please login with new password {password}"
         mail.send(msg)
         response={
-            "status_code":HTTPStatus.ok,
              "message":"password apdate with succes check your email and reset your password ....."
         }
         return response
@@ -256,6 +253,7 @@ class Refresh(Resource):
         refresh_token=create_refresh_token(identity=username)
         expire =  datetime.utcnow()
         expire +=  timedelta(hours=23)
+        token:AccesToken=AccesToken.query.filter_by(patient_id=patient.id).first()
         if token is None:
             token=AccesToken(
             access_token=access_token,
@@ -268,7 +266,14 @@ class Refresh(Resource):
             token.refresh_token=refresh_token
             token.expired_in=expire
             token.update()
-        return token 
+        result={
+                "access_token":access_token,
+                "refresh_token":refresh_token,
+                "session":True,
+                "expire_in":token.expired_in
+                }
+        return result
+        
 
 
 
@@ -593,8 +598,8 @@ class Upload(Resource):
         file=request.files["file"]
         if file.filename == '':
             return abort(401,"no selected file")
-        name=file.filename
-        image=ImageModel.query.filter_by(filename=name).first()
+        name=secure_filename(file.filename)
+        image:ImageModel=ImageModel.query.filter_by(filename=name).first()
         if image :
             return abort(404,"file already exist")
         if file and allowed_file(file.filename):
@@ -606,6 +611,8 @@ class Upload(Resource):
                 ).save()
             patient.urlimage=filename
             patient.update()
+        else:
+            return  abort(404,"file is not image")
         return jsonify(message="file upload witth success",filename=filename)
 
 

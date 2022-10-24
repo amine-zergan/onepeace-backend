@@ -58,21 +58,19 @@ class SignUp(Resource):
         data=request.get_json()
         filter=Patient.query.filter_by(username=data.get("username")).first()
         filter_1=Patient.query.filter_by(email=data.get("email")).first()
+        filter_2=Doctor.query.filter_by(email=data.get("email")).first()
         code_generate=randint(11111,99999)
         if filter is not None:
             abort(401,"username already exist")
         if filter_1 is not None:
             abort(401,"email already exist")
+        if filter_2 is not None:
+            abort(401,"email already used ")
         code_generate=randint(11111,99999)
         user:Patient=Patient(
             username=data.get("username"),
             email=data.get("email"),
-            first_name=data.get("first_name"),
-            last_name=data.get("last_name"),
             password=generate_password_hash(data.get("password")),
-            urlimage="",
-            number_phone=0,
-            cnam_code="",
             code=code_generate,
         )
         mail.connect()
@@ -275,6 +273,47 @@ class Refresh(Resource):
         return result
         
 
+###################### complet-profil patient ##################
+
+# number_phone=db.Column(db.Integer())
+# first_name=db.Column(db.String(50) )
+ #last_name=db.Column(db.String(50), )
+ #cnam_code=db.Column(db.String(50),)
+
+complet_model=patient_view.model(
+    "patient_complet_model",{
+        "first_name":fields.String(requires=True),
+        "last_name":fields.String(),
+        "number_phone":fields.Integer(),
+        "cnam_code":fields.String() ,
+         
+    }
+)
+
+complet_response=patient_view.model(
+    "profil_complet",{
+        "message":fields.String()
+    }
+)
+
+@patient_view.route("/complet-profil")
+class Complet(Resource):
+    @jwt_required()
+    @patient_view.expect(code_model)
+    @patient_view.marshal_with(complet_response,200)
+    def post(self):
+        username=get_jwt_identity()
+        filter:Patient=Patient.query.filter_by(username=username).first()
+        data=request.get_json()
+        filter.first_name=data.get("first_name")
+        filter.last_name=data.get("last_name")
+        filter.cnam_code=data.get("cnam_code")
+        filter.number_phone=data.get("number_phone")
+        filter.update()
+        result= {
+            "message":"profil completed with succes"
+        }
+        return result
 
 
 

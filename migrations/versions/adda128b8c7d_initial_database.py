@@ -1,8 +1,8 @@
-"""flask db initialise
+"""initial database
 
-Revision ID: ae17ce6823a1
+Revision ID: adda128b8c7d
 Revises: 
-Create Date: 2022-10-09 12:37:40.715518
+Create Date: 2022-10-19 09:55:33.394127
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'ae17ce6823a1'
+revision = 'adda128b8c7d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -24,9 +24,6 @@ def upgrade():
     sa.Column('urlimage', sa.String(length=100), nullable=True),
     sa.Column('email', sa.String(length=100), nullable=False),
     sa.Column('password', sa.Text(), nullable=False),
-    sa.Column('code', sa.Integer(), nullable=False),
-    sa.Column('number_phone', sa.Integer(), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.Column('first_name', sa.String(length=50), nullable=False),
     sa.Column('last_name', sa.String(length=50), nullable=False),
     sa.Column('create_at', sa.DateTime(), nullable=True),
@@ -110,14 +107,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['doctor_id'], ['doctors.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('imageadmins',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('filename', sa.String(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('admin_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['admin_id'], ['adminsaccounts.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('imagedoctors',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('filename', sa.String(), nullable=False),
@@ -129,7 +118,6 @@ def upgrade():
     op.create_table('musiques',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(), nullable=False),
-    sa.Column('songer', sa.String(length=100), nullable=True),
     sa.Column('url', sa.String(length=100), nullable=False),
     sa.Column('category_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
@@ -147,8 +135,8 @@ def upgrade():
     sa.Column('is_blocked', sa.Boolean(), nullable=True),
     sa.Column('is_verify', sa.Boolean(), nullable=True),
     sa.Column('is_logged', sa.Boolean(), nullable=True),
-    sa.Column('first_name', sa.String(length=50), nullable=False),
-    sa.Column('last_name', sa.String(length=50), nullable=False),
+    sa.Column('first_name', sa.String(length=50), nullable=True),
+    sa.Column('last_name', sa.String(length=50), nullable=True),
     sa.Column('cnam_code', sa.String(length=50), nullable=True),
     sa.Column('create_at', sa.DateTime(), nullable=True),
     sa.Column('last_session', sa.DateTime(), nullable=True),
@@ -202,7 +190,6 @@ def downgrade():
     op.drop_table('patients')
     op.drop_table('musiques')
     op.drop_table('imagedoctors')
-    op.drop_table('imageadmins')
     op.drop_table('experiences')
     op.drop_table('doctortokens')
     op.drop_table('cabinets')

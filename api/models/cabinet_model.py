@@ -13,7 +13,7 @@ class Cabinet(db.Model):
     doctor_id = db.Column(db.Integer(), db.ForeignKey('doctors.id'),
         nullable=False)
     def __repr__(self) :
-        return f"Cabinet for adress  {self.cabinet_address} user by doctor{self.docotr_id}"
+        return f"Cabinet for adress  {self.cabinet_address} user by doctor{self.doctor_id}"
     def save(self):
         db.session.add(self)
         db.session.commit()

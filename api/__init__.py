@@ -12,6 +12,7 @@ from .models.image_patient import ImageModel
 from .models.music_model import Musique
 from .models.patients_model import Patient
 from .models.doctors_model import Doctor
+from .models.image_doctors import ImageDoctor
 from .models.categorie_model import Category
 from .models.image_doctors import ImageDoctor
 from .models.image_patient import ImageModel
@@ -22,6 +23,7 @@ from flask_admin.contrib.sqla import ModelView
 from .patients_view.views import patient_view
 from .admin_account.views import admin_view
 from .doctor_view.views import doctor_view
+from flask_admin.contrib.fileadmin import FileAdmin
 
 
 
@@ -58,7 +60,11 @@ def create_app(config=config_dict['dev']):
             "adminToken":AdminToken,
             "tokendoctor":TokenDoctor,
         }
- 
+    class FileView(FileAdmin):
+        can_mkdir=False
+        can_delete_dirs=False
+        can_download=True
+    path="/Users/aminemejri/Desktop/flask copie/api/uploads"
     admin.add_view(ModelView(Musique,db.session))
     admin.add_view(ModelView(ImageModel,db.session))
     admin.add_view(ModelView(Experience,db.session))
@@ -67,8 +73,10 @@ def create_app(config=config_dict['dev']):
     admin.add_view(ModelView(AccesToken,db.session))
     admin.add_view(ModelView(Patient,db.session))
     admin.add_view(ModelView(Doctor,db.session))
+    admin.add_view(ModelView(ImageDoctor,db.session))
     admin.add_view(ModelView(AdminAccount,db.session))
     admin.add_view(ModelView(Cabinet,db.session))
+    admin.add_view(FileView(path, '/uploads/', name='Files',))
     return app
 
 

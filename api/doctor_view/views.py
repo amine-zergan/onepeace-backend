@@ -1,3 +1,4 @@
+from email import message
 from flask_restx import Resource,fields,Namespace
 from api.models.experiences_model import Experience
 from ..models.patients_model import Patient
@@ -5,7 +6,7 @@ from ..models.doctors_model import Doctor
 from ..models.image_doctors import ImageDoctor
 from ..models.token_doctor import TokenDoctor
 from ..models.appointments_model import Appointment
-from flask import  abort,request,jsonify
+from flask import  abort,request,jsonify,Response
 from flask_jwt_extended import create_refresh_token,create_access_token,jwt_required,get_jwt_identity
 from werkzeug.security import check_password_hash,generate_password_hash
 from http import HTTPStatus
@@ -44,13 +45,14 @@ login_response = doctor_view.model(
 @doctor_view.route("/auth/login")
 class LoginDoctor(Resource):
     @doctor_view.expect(login_model)
+   
     @doctor_view.marshal_with(login_response,code=200)
     def post(self):
         data=request.get_json()
         email=data.get("email")
         password=data.get("password")
         doctor :Doctor=Doctor.query.filter_by(email=email).first()
-        if doctor is not None and check_password_hash(doctor.password,password):
+        if doctor is not None and doctor.password== password:
             token =TokenDoctor.query.filter_by(doctor_id=doctor.id).first()
             access_token=create_access_token(identity=doctor.username)
             refresh_token=create_refresh_token(identity=doctor.username)
@@ -78,7 +80,7 @@ class LoginDoctor(Resource):
                 "expire_in":token.expired_in
             }
             return result
-        return abort(HTTPStatus.NOT_FOUND,"verifie your email or password wrong")
+        return abort(404, description="email or password wrong")
 
 ####################### Log out #################################
 logout_model=doctor_view.model(
@@ -126,7 +128,7 @@ reset_response=doctor_view.model(
 
 @doctor_view.route("/auth/reset-password")
 class ResetPassword(Resource):
-    @jwt_required()
+
     @doctor_view.expect(reset_model)
     @doctor_view.marshal_with(reset_response)
     def post(self):
@@ -137,12 +139,12 @@ class ResetPassword(Resource):
             abort(401,"user not found verifier your email")
         msg=Message("Reset password For user account",sender=os.getenv("MAIL_USERNAME"),recipients=[f"{user.email}"])
         password=f"Password123*@{user.username[0:2]}????{user.email[0:4]}"
-        user.password=generate_password_hash(password)
+        user.password=password
         user.update()
         msg.body=F"bienvenue chez auth OnePeace Psy api ,{user.first_name}, your password was updated with succes, please login with new password {password}"
         mail.send(msg)
         response={
-            "status_code":HTTPStatus.ok,
+            "status_code":200,
              "message":"password apdate with succes check your email and reset your password ....."
         }
         return response
@@ -472,6 +474,7 @@ doctor_model=doctor_view.model(
         "is_disponible":fields.Boolean(),
         "rating":fields.Integer(),
         "price":fields.Float(),
+        "images":fields.List(fields.Nested(image_model)),
         "cabinets":fields.List(fields.Nested(cabinet_model)),
         "experiences":fields.List(fields.Nested(experience_model)),
         "appoint":fields.List(fields.Nested(appoint_response)),

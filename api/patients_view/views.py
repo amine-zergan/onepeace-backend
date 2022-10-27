@@ -56,6 +56,8 @@ class SignUp(Resource):
     @patient_view.marshal_with(signup_response)
     def post(self):
         data=request.get_json()
+        if data is None:
+            return abort(401,"data is emty")
         filter=Patient.query.filter_by(username=data.get("username")).first()
         filter_1=Patient.query.filter_by(email=data.get("email")).first()
         filter_2=Doctor.query.filter_by(email=data.get("email")).first()
@@ -323,7 +325,7 @@ musique_model=patient_view.model(
     "musique_model",{
         "id":fields.Integer(),
         "title":fields.String(),
-        "songer":fields.String(),
+         
         "url":fields.String(),
         "category_id":fields.Integer()
     }
@@ -331,7 +333,7 @@ musique_model=patient_view.model(
 
 @patient_view.route("/musiques")
 class FetchAllMusic(Resource):
-    @jwt_required()
+   # @jwt_required()
     @patient_view.marshal_list_with(musique_model,code=200,envelope="musiques")
     def get(self):
         musique=Musique.query.all()
@@ -344,6 +346,7 @@ categorie_model=patient_view.model(
     "categorie_model",{
         "id":fields.Integer(),
         "name":fields.String(),
+        "image_url":fields.String(),
         "create_at":fields.DateTime(),
         "musiques":fields.List(fields.Nested(musique_model))
     }
@@ -351,7 +354,7 @@ categorie_model=patient_view.model(
 
 @patient_view.route("/categories")
 class FetchAllCategorie(Resource):
-    @jwt_required()
+   # @jwt_required()
     @patient_view.marshal_list_with(categorie_model,code=200,envelope="categories")
     def get(self):
         categorie=Category.query.all()
@@ -359,7 +362,7 @@ class FetchAllCategorie(Resource):
 
 @patient_view.route("/categorie/<name>")
 class FetchById(Resource):
-    @jwt_required()
+    #@jwt_required()
     @patient_view.marshal_with(categorie_model)
     def get(self,name):
         categorie= Category.query.filter_by(name=name).first()
@@ -416,7 +419,7 @@ doctor_model=patient_view.model(
 
 @patient_view.route("/doctors")
 class FetchallDoctor(Resource):
-    @jwt_required()
+   # @jwt_required()
     @patient_view.marshal_list_with(doctor_model,code=200,envelope="doctors")
     def get(self):
         doctors:Doctor=Doctor.query.all()
@@ -425,7 +428,7 @@ class FetchallDoctor(Resource):
 
 @patient_view.route("/doctor/<name>")
 class FetchallDoctor(Resource):
-    @jwt_required()
+   # @jwt_required()
     @patient_view.marshal_list_with(doctor_model,code=200,envelope="doctors")
     def get(self,name):
         doctors:Doctor=Doctor.query.filter(Doctor.first_name.startswith(name)).all()
@@ -504,6 +507,7 @@ class AppointmentPost(Resource):
         patient:Patient=Patient.query.filter_by(username=username).first()
         appoint:Appointment=Appointment.query.filter_by(patient_id=patient.id).all()
         return appoint
+    
 @patient_view.route("/appointment/<int:id>")
 class DeleteApp(Resource):
     @jwt_required()

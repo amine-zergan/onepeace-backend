@@ -66,15 +66,15 @@ def create_app(config=config_dict['dev']):
         can_download=True
     path="/Users/aminemejri/Desktop/flask copie/api/uploads"
     admin.add_view(ModelView(Musique,db.session))
-    admin.add_view(ModelView(ImageModel,db.session))
+    
     admin.add_view(ModelView(Experience,db.session))
     admin.add_view(ModelView(Category,db.session))
     admin.add_view(ModelView(Appointment,db.session))
-    admin.add_view(ModelView(AccesToken,db.session))
+     
     admin.add_view(ModelView(Patient,db.session))
     admin.add_view(ModelView(Doctor,db.session))
-    admin.add_view(ModelView(ImageDoctor,db.session))
-    admin.add_view(ModelView(AdminAccount,db.session))
+     
+    
     admin.add_view(ModelView(Cabinet,db.session))
     admin.add_view(FileView(path, '/uploads/', name='Files',))
     return app

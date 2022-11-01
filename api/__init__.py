@@ -70,9 +70,11 @@ def create_app(config=config_dict['dev']):
     admin.add_view(ModelView(Experience,db.session))
     admin.add_view(ModelView(Category,db.session))
     admin.add_view(ModelView(Appointment,db.session))
-     
+    admin.add_view(ModelView(ImageDoctor,db.session))
     admin.add_view(ModelView(Patient,db.session))
+    admin.add_view(ModelView(ImageModel,db.session))
     admin.add_view(ModelView(Doctor,db.session))
+    admin.add_view(ModelView(AccesToken,db.session))
      
     
     admin.add_view(ModelView(Cabinet,db.session))

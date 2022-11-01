@@ -58,6 +58,13 @@ class SignUp(Resource):
         data=request.get_json()
         if data is None:
             return abort(401,"data is emty")
+        if data.get("username") is None or data.get("username")=="":
+            return abort(401,"username isEmty")
+        if data.get("email") is None or data.get("email")=="":
+            return abort(401,"email isEmty")
+        if data.get("password") is None or data.get("password")=="":
+            return abort(401,"password isEmty")
+        
         filter=Patient.query.filter_by(username=data.get("username")).first()
         filter_1=Patient.query.filter_by(email=data.get("email")).first()
         filter_2=Doctor.query.filter_by(email=data.get("email")).first()
@@ -76,14 +83,16 @@ class SignUp(Resource):
             code=code_generate,
         )
         mail.connect()
-        msg=Message("registration user account",sender="onepeace2023@gmail.com",recipients=[f"{user.email}"])
-        msg.body=f"bienvenue chez OnePeace Patient ,{user.first_name} {user.last_name} creat an account with succes, please verify your account before login with code identif {user.code}"
-        mail.send(msg)
-        user.save()
-        response={
-            "message":"user created with succes please check your email to verifie your  account  "
-        }
-        return  response
+        if user.email is not None:
+            msg=Message("registration user account",sender="onepeace2023@gmail.com",recipients=[f"{user.email}"])
+            msg.body=f"bienvenue chez OnePeace Patient ,{user.first_name} {user.last_name} creat an account with succes, please verify your account before login with code identif {user.code}"
+            mail.send(msg)
+            user.save()
+            response={
+                "message":"user created with succes please check your email to verifie your  account  "
+            }
+            return  response
+        return abort(404,"sign up failed")
 ################################ login endpoint #######################
 
 login_model=patient_view.model(
@@ -107,6 +116,10 @@ class Login(Resource):
     @patient_view.marshal_with(login_response)
     def post(self):
         data=request.get_json()
+        if data.get("email") is None:
+            return abort(401,"email isEmty")
+        if data.get("password") is None:
+            return abort(401,"password isEmty")
         email=data.get("email")
         password=data.get("password")
         user :Patient=Patient.query.filter_by(email=email).first()
@@ -139,14 +152,14 @@ class Login(Resource):
                 }
                 return result
             else:
-                return abort(404,"Account patient is not verify , please check your email account and verifie your email address")
+                return abort(404,"Account patient is not verify ")
         return abort(404,"verifie your email or password wrong")
 
 ################### log-out endpoint ######################
  
 logout_model=patient_view.model(
     "logout_model",{
-        "status_code":fields.Integer(),
+         
         "session":fields.Boolean(),
         "message":fields.String()
     }
@@ -166,7 +179,7 @@ class LogOut(Resource):
         user.last_session=datetime.utcnow()
         user.update()
         response={
-        "status_code":HTTPStatus.OK,
+         
         "session":False,
         "message":"user sign-out with succes"
         }
@@ -193,6 +206,8 @@ class Verify(Resource):
     @patient_view.expect(code_model)
     def post(self):
         data=request.get_json()
+        if data.get("code") is None:
+            return abort(401,"code isEmty")
         code=int(data.get("code"))
         user=Patient.query.filter_by(code=code).first()
         if user :
@@ -224,6 +239,8 @@ class LogOut(Resource):
     @patient_view.marshal_with(reset_response)
     def post(self):
         data=request.get_json()
+         
+         
         email=data.get("email")
         if email is None or "":
             return abort(401,"entrer your email address")
@@ -394,6 +411,7 @@ experience_model=patient_view.model(
         "id":fields.Integer(),
         "job_occuped":fields.String(),
         "description":fields.String(),
+        "is_occuped":fields.Boolean(),
         "society":fields.String(),
         "date_started":fields.String(),
         "date_finished":fields.String()
@@ -419,8 +437,8 @@ doctor_model=patient_view.model(
 
 @patient_view.route("/doctors")
 class FetchallDoctor(Resource):
-   # @jwt_required()
-    @patient_view.marshal_list_with(doctor_model,code=200,envelope="doctors")
+    @jwt_required()
+    @patient_view.marshal_list_with(doctor_model,code=200,)
     def get(self):
         doctors:Doctor=Doctor.query.all()
         return doctors
@@ -443,7 +461,7 @@ class FetchallDoctor(Resource):
 ################### appointment endpoint ########################
 appoint_request=patient_view.model(
     "appoint_model",{
-        "duration":fields.String(),
+       
           "hour_appoint":fields.String(),
           "date_appoint":fields.String(),
           "description":fields.String(),
@@ -453,21 +471,21 @@ appoint_request=patient_view.model(
 
 appoint_response=patient_view.model(
     "Appoint_Response",{
+        "id":fields.Integer(),
         "duration":fields.String(),
         "hour_appoint":fields.String(),
         "date_appoint":fields.String(),
         "description":fields.String(),
         "create_at":fields.DateTime(),
         "validation":fields.String(),
-        "doctor_id":fields.Integer(),
-        "patient_id":fields.Integer()
+        "doctor_id": fields.Integer(),
+        
     }
 )
 
-@patient_view.route("/appointment")
+@patient_view.route("/appointments")
 class AppointmentPost(Resource):
     @jwt_required()
-    @patient_view.marshal_with(appoint_response)
     @patient_view.expect(appoint_request)
     def post(self):
         username=get_jwt_identity()
@@ -475,7 +493,6 @@ class AppointmentPost(Resource):
         data=request.get_json()
         date_appoint=data.get("date_appoint")
         hour_appoint=data.get("hour_appoint")
-        duration=data.get("duration")
         description=data.get("description")
         doctor_id=data.get("doctor_id")
         doctor:Doctor=Doctor.query.filter_by(id=doctor_id).first()
@@ -496,12 +513,24 @@ class AppointmentPost(Resource):
              description=data.get("description"),
              doctor_id=data.get("doctor_id"),
              patient_id=patient.id,
-             duration=data.get("duration")
+             duration=""
         )
         appointment.save()
-        return appointment
+        result={
+            "id":appointment.id,
+            "duration":appointment.duration,
+            "hour_appoint":appointment.hour_appoint,
+            "date_appoint":appointment.date_appoint,
+            "description":appointment.description,
+            "validation":appointment.validation,
+            "doctor_name":doctor.first_name,
+            "doctor_last_name":doctor.last_name,
+            "doctor_phone":doctor.number_phone,
+            "doctor_price":doctor.price,
+ }
+        return result
     @jwt_required()
-    @patient_view.marshal_list_with(appoint_response,code=200,envelope="appoints")
+    @patient_view.marshal_list_with(appoint_response,code=200)
     def get(self):
         username=get_jwt_identity()
         patient:Patient=Patient.query.filter_by(username=username).first()
@@ -531,11 +560,11 @@ class DeleteApp(Resource):
             return abort(404,"appointment not found")
         doctor:Doctor=Doctor.query.filter_by(id=appoint.doctor_id).first()
         result={
+            "id":appoint.id,
             "duration":appoint.duration,
             "hour_appoint":appoint.hour_appoint,
             "date_appoint":appoint.date_appoint,
             "description":appoint.description,
-            "create_at":appoint.create_at,
             "validation":appoint.validation,
             "doctor_name":doctor.first_name,
             "doctor_last_name":doctor.last_name,
@@ -663,7 +692,7 @@ class Upload(Resource):
 
 @patient_view.route("/uploads/<filename>")
 class Download(Resource):
-    @jwt_required()
+    #@jwt_required()
     def get(self,filename):
         return send_from_directory("uploads",
                            filename)

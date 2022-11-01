@@ -3,8 +3,6 @@
 from ..utils import db ,admin
 from datetime import datetime
 from flask_admin.contrib.sqla import ModelView
-
-# type orm : mirror qui va translate class vers table sql 
 class AccesToken(db.Model):
     __tablename__="tokens"
     id=db.Column(db.Integer(),primary_key=True)

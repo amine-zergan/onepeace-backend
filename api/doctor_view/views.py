@@ -8,7 +8,6 @@ from ..models.token_doctor import TokenDoctor
 from ..models.appointments_model import Appointment
 from flask import  abort,request,jsonify,Response
 from flask_jwt_extended import create_refresh_token,create_access_token,jwt_required,get_jwt_identity
-from werkzeug.security import check_password_hash,generate_password_hash
 from http import HTTPStatus
 from datetime import datetime, timedelta
 from flask_mail import Message
@@ -17,6 +16,7 @@ import os
 from ..models.cabinet_model import Cabinet
 from werkzeug.utils import secure_filename
 from flask import send_from_directory
+from ..doctor_view.sendmessage import send_message
 
 
 
@@ -85,7 +85,7 @@ class LoginDoctor(Resource):
 ####################### Log out #################################
 logout_model=doctor_view.model(
     "logout_model",{
-        "status_code":fields.Integer(),
+         
         "session":fields.Boolean(),
         "message":fields.String()
     }
@@ -104,8 +104,8 @@ class ResetPassword(Resource):
         user.is_logged=False
         user.last_session=datetime.utcnow()
         user.update()
+        token.delete()
         response={
-        "status_code":HTTPStatus.OK,
         "session":False,
         "message":"user sign-out with succes"
         }
@@ -366,35 +366,56 @@ class Cabinet(Resource):
 
 appoint_response=doctor_view.model(
     "Appoint_Response",{
+        "id":fields.Integer(),
         "duration":fields.String(),
         "hour_appoint":fields.String(),
         "date_appoint":fields.String(),
         "description":fields.String(),
         "create_at":fields.DateTime(),
         "validation":fields.String(),
-        "doctor_id":fields.Integer(),
         "patient_id":fields.Integer()
     }
 )
 @doctor_view.route("/appointments")
 class FetchAppointment(Resource):
     @jwt_required()
-    @doctor_view.marshal_list_with(appoint_response,code=200,envelope="appointments")
+    #@doctor_view.marshal_list_with(appoint_response,code=200)
+    def get(self):
+        resultapp=[]
+        username=get_jwt_identity()
+        doctor:Doctor=Doctor.query.filter_by(username=username).first()
+        appoint:Appointment=Appointment.query.filter_by(doctor_id=doctor.id).order_by(Appointment.validation).all()
+        for app in appoint:
+            patient:Patient=Patient.query.filter_by(id=app.patient_id).first()
+            result={
+                "id":app.id,
+                "duration":app.duration,
+                "date_appoint":app.date_appoint,
+                "hour_appoint":app.hour_appoint,
+                "patient_name":patient.first_name,
+                "patient_lastname":patient.last_name,
+                "number_phone":patient.number_phone,
+                "is_logged":patient.is_logged,
+                "cnam_code":patient.cnam_code,
+                "urlimage":patient.urlimage,
+                "validation":app.validation
+            }
+            resultapp.append(result)
+        return resultapp
+
+@doctor_view.route("/appointment")
+class FetchAppointment(Resource):
+    @jwt_required()
     def get(self):
         username=get_jwt_identity()
         doctor:Doctor=Doctor.query.filter_by(username=username).first()
-        appoint:Appointment=Appointment.query.filter_by(doctor_id=doctor.id).all()
-        return appoint
-
-@doctor_view.route("/appointment/<int:id>")
-class FetchAppointment(Resource):
-    @jwt_required()
-    def get(self,id):
-        username=get_jwt_identity()
-        doctor:Doctor=Doctor.query.filter_by(username=username).first()
+        data=request.get_json()
+        id=data.get("id")
+        if id is None:
+            return abort(404,"Appointment is not exist")
         appoint:Appointment=Appointment.query.filter_by(doctor_id=doctor.id).filter_by(id=id).first()
         if appoint is None:
-            return []
+            return abort(404,"not appointment found")
         patient:Patient=Patient.query.filter_by(id=appoint.patient_id).first()
         result={
             "duration":appoint.duration,
@@ -411,45 +432,30 @@ class FetchAppointment(Resource):
         return result
     
     @jwt_required()
-    def put(self,id):
+    def put(self):
         username=get_jwt_identity()
         doctor:Doctor=Doctor.query.filter_by(username=username).first()
+        data=request.get_json()
+        id=data.get("id")
+        if id is None:
+            return abort(404,"Appointment is not exist")
+        validation=data.get("validation")
+        if validation is None:
+            return abort(404,"validation is empty")
         appoint:Appointment=Appointment.query.filter_by(doctor_id=doctor.id).filter_by(id=id).first()
         if appoint is None:
             return abort(404,"there is not appointment to updated")
-        patient:Patient=Patient.query.filter_by(id=appoint.patient_id).first()
-        data=request.get_json()
-        date_appoint=data.get("date_appoint")
-        hour_appoint=data.get("hour_appoint")
-        description=data.get("description")
-        validation=data.get("validation")
-        if date_appoint is None:
-            return abort(404,"date_appoint is empty")
-        if hour_appoint is None:
-            return abort(404,"hour_appoint is empty")
-        if validation is None:
-            return abort(404,"validation is empty")
-        appoint.date_appoint=date_appoint
-        appoint.hour_appoint=hour_appoint
-        appoint.description=description
         appoint.validation=validation
         appoint.update()
+        if appoint.validation=="validate":
+            send_message(27916650,appoint.date_appoint)
         result={
-            "duration":appoint.duration,
-            "date_appoint":appoint.date_appoint,
-            "hour_appoint":appoint.hour_appoint,
-            "patient_name":patient.first_name,
-            "patient_lastname":patient.last_name,
-            "number_phone":patient.number_phone,
-            "is_logged":patient.is_logged,
-            "cnam_code":patient.cnam_code,
-            "urlimage":patient.urlimage,
+            "message":" Appointment was update with success",
             "validation":appoint.validation
         }
         return result
     
-
-
+   
 
 
 ########################### profil doctor #######################
@@ -534,7 +540,7 @@ class Upload(Resource):
 
 @doctor_view.route("/uploads/<filename>")
 class Download(Resource):
-    @jwt_required()
+   # @jwt_required()
     def get(self,filename):
         return send_from_directory("uploads",
                            filename)

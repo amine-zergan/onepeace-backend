@@ -75,7 +75,7 @@ def create_app(config=config_dict['dev']):
     admin.add_view(ModelView(ImageModel,db.session))
     admin.add_view(ModelView(Doctor,db.session))
     admin.add_view(ModelView(AccesToken,db.session))
-     
+    admin.add_view(ModelView(TokenDoctor,db.session))
     
     admin.add_view(ModelView(Cabinet,db.session))
     admin.add_view(FileView(path, '/uploads/', name='Files',))

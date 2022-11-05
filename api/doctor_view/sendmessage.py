@@ -1,6 +1,5 @@
 from vonage import Client, Sms
-import os
-from random import randint
+ 
 
 
 

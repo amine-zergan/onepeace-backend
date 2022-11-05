@@ -446,6 +446,7 @@ class FetchAppointment(Resource):
         if appoint is None:
             return abort(404,"there is not appointment to updated")
         appoint.validation=validation
+        appoint.doctor_id=doctor.id
         appoint.update()
         if appoint.validation=="validate":
             send_message(27916650,appoint.date_appoint)
